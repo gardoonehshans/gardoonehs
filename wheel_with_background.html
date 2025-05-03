@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <title>گردونه شانس</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Tahoma, sans-serif;
+      background-color: #87CEEB;
+      background-image: linear-gradient(to bottom right, #e3f2fd, #fff);
+    }
+
+    .container {
+      text-align: center;
+      padding: 30px;
+    }
+
+    canvas {
+      border: 5px solid #555;
+      border-radius: 50%;
+      margin-top: 20px;
+    }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    .controls input, .controls button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+    }
+
+    .pointer {
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-bottom: 40px solid red;
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>گردونه شانس</h1>
+    <div class="controls">
+      <input id="nameInput" type="text" placeholder="نام را وارد کنید" />
+      <button onclick="addName()">افزودن</button>
+      <br>
+      <input id="bulkInput" type="text" placeholder="مثلاً: علی، فاطمه، مریم" />
+      <button onclick="addBulk()">افزودن لیست</button>
+      <br>
+      <button onclick="spin()">بچرخون</button>
+      <button onclick="hideSelected()">پنهان کردن</button>
+    </div>
+    <div class="pointer"></div>
+    <canvas id="wheel" width="500" height="500"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    let names = [];
+    let colors = [];
+    let angle = 0;
+    let currentIndex = null;
+    const excludedNames = ['امین', 'رومینا'];
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let total = names.length;
+      let arc = 2 * Math.PI / total;
+      for (let i = 0; i < total; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = colors[i];
+        ctx.moveTo(250, 250);
+        ctx.arc(250, 250, 250, angle + i * arc, angle + (i + 1) * arc);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(250, 250);
+        ctx.rotate(angle + (i + 0.5) * arc);
+        ctx.fillStyle = "#000";
+        ctx.font = "16px Tahoma";
+        ctx.fillText(names[i], 120, 10);
+        ctx.restore();
+      }
+    }
+
+    function getRandomColor() {
+      const letters = "0123456789ABCDEF";
+      let color = "#";
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    function addName() {
+      const name = document.getElementById('nameInput').value.trim();
+      if (name && !names.includes(name)) {
+        names.push(name);
+        colors.push(getRandomColor());
+        drawWheel();
+      }
+      document.getElementById('nameInput').value = '';
+    }
+
+    function addBulk() {
+      const input = document.getElementById('bulkInput').value.trim();
+      const list = input.split(/[،,]/).map(item => item.trim());
+      for (let name of list) {
+        if (name && !names.includes(name)) {
+          names.push(name);
+          colors.push(getRandomColor());
+        }
+      }
+      drawWheel();
+      document.getElementById('bulkInput').value = '';
+    }
+
+    function spin() {
+      if (names.length <= 1) return alert("حداقل دو گزینه لازم است!");
+      let eligible = names.filter(n => !excludedNames.includes(n));
+      if (eligible.length === 0) return alert("هیچ گزینه مجاز برای انتخاب وجود ندارد!");
+
+      let spins = 10 + Math.random() * 5;
+      let duration = 4000;
+      let start = performance.now();
+      let selectedName = null;
+
+      function animate(now) {
+        let progress = (now - start) / duration;
+        if (progress > 1) progress = 1;
+        let ease = 1 - Math.pow(1 - progress, 3);
+        let totalAngle = 2 * Math.PI * spins * ease;
+        angle = totalAngle;
+        drawWheel();
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          let total = names.length;
+          let arc = 2 * Math.PI / total;
+          let index = Math.floor((total - (angle / arc) % total) % total);
+          while (excludedNames.includes(names[index])) {
+            index = (index + 1) % names.length;
+          }
+          currentIndex = index;
+          alert("انتخاب شده: " + names[currentIndex]);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function hideSelected() {
+      if (currentIndex !== null) {
+        names.splice(currentIndex, 1);
+        colors.splice(currentIndex, 1);
+        currentIndex = null;
+        drawWheel();
+      }
+    }
+
+    drawWheel();
+  </script>
+</body>
+</html>
